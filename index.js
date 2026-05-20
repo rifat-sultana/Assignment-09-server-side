@@ -1,53 +1,75 @@
-const express = require ('express')
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const dns = require("node:dns");
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
-const uri = "mongodb+srv://mediqueue:hF1wfuZxMYKE2zk5@ph1-cluster0.obx0lau.mongodb.net/?appName=ph1-Cluster0";
-const app =  express()
-const PORT = 3000
+const express = require("express");
+const cors = require("cors");
+const dotenv = require("dotenv");
+const { MongoClient, ServerApiVersion } = require("mongodb");
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+
+const uri = process.env.MONGODB_URI;
 
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
+
     await client.connect();
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
+
+    console.log("MongoDB Connected");
+
+    const tutorsCollection = client
+      .db("mediqueue")
+      .collection("tutors");
+
+    // ROOT
+    app.get("/", (req, res) => {
+      res.send("Server running successfully");
+    });
+
+    // ALL TUTORS
+    app.get("/tutors", async (req, res) => {
+
+      const result = await tutorsCollection
+        .find({})
+        .toArray();
+
+      res.send(result);
+    });
+
+    // HOME TUTORS (LIMIT 6)
+    app.get("/home-tutors", async (req, res) => {
+
+      const result = await tutorsCollection
+        .find({})
+        .limit(6)
+        .toArray();
+
+      res.send(result);
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
   }
 }
-run().catch(console.dir);
 
+run();
 
-// Root API
-
-app.get('/', (req, res) => {
-  res.send('Server is running successfully')
-})
-
-
-// Users API
-app.get('/users', (req, res) => {
-  res.send('All users data')
-})
-
-
-// Tutors API
-app.get('/tutors', (req, res) => {
-  res.send('All tutors data')
-})
-
-
-// Server Run
-app.listen(PORT, ()=>{
-  console.log(`sever running on port ${PORT}`)
-})
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
