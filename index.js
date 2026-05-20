@@ -68,6 +68,20 @@ async function run() {
   }
 }
 
+
+// add tutor api
+
+app.post("/tutors", async (req, res) => {
+
+  const tutorData = req.body;
+
+  const result = await tutorsCollection.insertOne(
+    tutorData
+  );
+
+  res.send(result);
+});
+
 run();
 
 app.listen(PORT, () => {
