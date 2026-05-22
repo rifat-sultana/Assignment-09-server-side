@@ -26,11 +26,11 @@ app.use(cors());
 
 app.use(express.json());
 
-// MONGODB URI
+// Mongodb uri
 
 const uri = process.env.MONGODB_URI;
 
-// CLIENT
+// Client
 
 const client = new MongoClient(uri, {
 
@@ -53,13 +53,17 @@ async function run() {
 
     console.log("MongoDB Connected");
 
-    // COLLECTION
+    // Collections
 
     const tutorsCollection = client
       .db("mediqueue")
       .collection("tutors");
 
-    // ROOT API
+    const bookingsCollection = client
+      .db("mediqueue")
+      .collection("bookings");
+
+    // Root api
 
     app.get("/", (req, res) => {
 
@@ -68,7 +72,8 @@ async function run() {
       );
     });
 
-    // ALL TUTORS API
+    // All tutor api
+   
 
     app.get("/tutors", async (req, res) => {
 
@@ -80,27 +85,30 @@ async function run() {
       res.send(result);
     });
 
-
-    // My tutor api 
+    
+    // MY TUTORS API
     
 
     app.get("/my-tutors", async (req, res) => {
 
       const email = req.query.email;
 
-        const query = {
-          userEmail: email,
-  };
+      const query = {
+
+        userEmail: email,
+      };
 
       const result =
         await tutorsCollection
           .find(query)
           .toArray();
 
-  res.send(result);
-});
+      res.send(result);
+    });
 
-    // ADD TUTOR API
+   
+    // Add tutor api
+    
 
     app.post("/tutors", async (req, res) => {
 
@@ -114,64 +122,75 @@ async function run() {
       res.send(result);
     });
 
-      // Delete tutor api
+   
+    // Delete tutor api
+
 
     app.delete("/tutors/:id", async (req, res) => {
 
       const id = req.params.id;
 
-        const query = {
+      const query = {
+
         _id: new ObjectId(id),
-  };
+      };
 
       const result =
-        await tutorsCollection.deleteOne(query);
+        await tutorsCollection.deleteOne(
+          query
+        );
 
-  res.send(result);
-});
+      res.send(result);
+    });
 
-      // UPDATE TUTOR API
+ 
+    // Update tutor api
+   
 
-      app.put("/tutors/:id", async (req, res) => {
+    app.put("/tutors/:id", async (req, res) => {
 
       const id = req.params.id;
 
-      const updatedTutor = req.body;
+      const updatedTutor =
+        req.body;
 
       const query = {
+
         _id: new ObjectId(id),
-  };
+      };
 
       const updatedDoc = {
 
-      $set: {
+        $set: {
 
-      tutorName:
-        updatedTutor.tutorName,
+          tutorName:
+            updatedTutor.tutorName,
 
-      subject:
-        updatedTutor.subject,
+          subject:
+            updatedTutor.subject,
 
-      hourlyFee:
-        updatedTutor.hourlyFee,
+          hourlyFee:
+            updatedTutor.hourlyFee,
 
-      location:
-        updatedTutor.location,
+          location:
+            updatedTutor.location,
 
-    },
-  };
+          experience:
+            updatedTutor.experience,
+        },
+      };
 
       const result =
-      await tutorsCollection.updateOne(
-      query,
-      updatedDoc
-    );
+        await tutorsCollection.updateOne(
+          query,
+          updatedDoc
+        );
 
-  res.send(result);
-});
-
+      res.send(result);
+    });
 
     // Home tutor api
+
 
     app.get("/home-tutors", async (req, res) => {
 
@@ -182,7 +201,68 @@ async function run() {
           .toArray();
 
       res.send(result);
+    });
 
+    
+    // Book session api
+  
+    app.post("/bookings", async (req, res) => {
+
+      const bookingData =
+        req.body;
+
+      const result = await bookingsCollection.insertOne(
+          bookingData
+        );
+      res.send(result);
+    });
+
+    // My booking api
+   
+
+    app.get("/bookings", async (req, res) => {
+
+      const email =
+        req.query.email;
+
+      const query = {
+
+        studentEmail: email,
+      };
+
+      const result =
+        await bookingsCollection
+          .find(query)
+          .toArray();
+
+      res.send(result);
+    });
+
+   
+    // Cancel booking api
+   
+
+    app.patch("/bookings/:id", async (req, res) => {
+
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
+
+      const updatedDoc = {
+
+        $set: {
+
+          status: "cancelled",
+        },
+      };
+
+      const result = await bookingsCollection.updateOne(
+          query,
+          updatedDoc
+        );
+
+      res.send(result);
     });
 
   } catch (error) {
