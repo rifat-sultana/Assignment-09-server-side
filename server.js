@@ -4,9 +4,21 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+
 const { connectDB } = require("./config/db");
-const { router: tutorsRouter, setTutorsCollection } = require("./routes/tutor");
-const { router: bookingsRouter, setCollections } = require("./routes/booking");
+const { auth } = require('./auth/auth')
+
+const { toNodeHandler } = require("better-auth/node");
+
+const { 
+  router: tutorsRouter, 
+  setTutorsCollection 
+} = require("./routes/tutor");
+
+const { 
+  router: bookingsRouter, 
+  setCollections 
+} = require("./routes/booking");
 
 dotenv.config();
 
@@ -21,6 +33,9 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("Server running successfully");
 });
+
+// Auth Routes
+app.all("/api/auth/*", toNodeHandler(auth));
 
 // Connect to Database and Start Server
 async function startServer() {
