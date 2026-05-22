@@ -6,9 +6,9 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 
 const { connectDB } = require("./config/db");
-const { auth } = require('./auth/auth')
-
-const { toNodeHandler } = require("better-auth/node");
+const { createAuth } = require('./auth/auth')
+const { signToken } = require('./auth/jwt')
+const { authenticate } = require('./middleware/authenticate')
 
 const { 
   router: tutorsRouter, 
@@ -25,10 +25,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-
-// MIDDLEWARE
-app.all('/api/auth/{*any}', toNodeHandler(auth))
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }))
 
@@ -42,6 +44,24 @@ app.get("/", (req, res) => {
 // Connect to Database and Start Server
 async function startServer() {
   try {
+    const auth = await createAuth();
+
+    const { toNodeHandler } = await import("better-auth/node");
+    app.all('/api/auth/{*any}', toNodeHandler(auth))
+
+    app.post("/api/jwt", async (req, res) => {
+      try {
+        const session = await auth.api.getSession({ headers: req.headers });
+        if (!session) {
+          return res.status(401).json({ message: "Not authenticated" });
+        }
+        const token = signToken(session.user);
+        res.json({ token, user: session.user });
+      } catch (error) {
+        res.status(500).json({ message: "Failed to generate token" });
+      }
+    });
+
     const { tutorsCollection, bookingsCollection } = await connectDB();
     
     // Set collections in route files
@@ -51,6 +71,9 @@ async function startServer() {
     // Use routes
     app.use("/tutors", tutorsRouter);
     app.use("/bookings", bookingsRouter);
+    app.use("/api/protected", authenticate, (req, res) => {
+      res.json({ user: req.user });
+    });
     
     // Start server
     app.listen(PORT, () => {
