@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { ObjectId } = require("mongodb");
+const { authenticate } = require("../middleware/authenticate");
 
 let tutorsCollection;
 
@@ -16,22 +17,21 @@ router.get("/", async (req, res) => {
 });
 
 // Get my tutors
-router.get("/my-tutors", async (req, res) => {
-  const email = req.query.email;
-  const query = { userEmail: email };
+router.get("/my-tutors", authenticate, async (req, res) => {
+  const query = { userEmail: req.user.email };
   const result = await tutorsCollection.find(query).toArray();
   res.send(result);
 });
 
 // Add tutor
-router.post("/", async (req, res) => {
-  const tutorData = req.body;
+router.post("/", authenticate, async (req, res) => {
+  const tutorData = { ...req.body, userName: req.user.name, userEmail: req.user.email };
   const result = await tutorsCollection.insertOne(tutorData);
   res.send(result);
 });
 
 // Delete tutor
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", authenticate, async (req, res) => {
   const id = req.params.id;
   const query = { _id: new ObjectId(id) };
   const result = await tutorsCollection.deleteOne(query);
@@ -39,7 +39,7 @@ router.delete("/:id", async (req, res) => {
 });
 
 // Update tutor
-router.put("/:id", async (req, res) => {
+router.put("/:id", authenticate, async (req, res) => {
   const id = req.params.id;
   const updatedTutor = req.body;
   const query = { _id: new ObjectId(id) };
@@ -63,7 +63,7 @@ router.get("/home-tutors", async (req, res) => {
 });
 
 // Decrease slot
-router.patch("/slot/:id", async (req, res) => {
+router.patch("/slot/:id", authenticate, async (req, res) => {
   const id = req.params.id;
   const tutor = await tutorsCollection.findOne({ _id: new ObjectId(id) });
   const updatedDoc = { $set: { totalSlot: tutor.totalSlot - 1 } };
