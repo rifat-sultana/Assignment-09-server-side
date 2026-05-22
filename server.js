@@ -25,17 +25,19 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+
 // MIDDLEWARE
+app.all('/api/auth/{*any}', toNodeHandler(auth))
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }))
+
 
 // Root API
 app.get("/", (req, res) => {
   res.send("Server running successfully");
 });
 
-// Auth Routes
-app.all("/api/auth/*", toNodeHandler(auth));
 
 // Connect to Database and Start Server
 async function startServer() {
