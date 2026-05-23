@@ -10,7 +10,7 @@ const { createAuth } = require('./auth/auth')
 const { signToken } = require('./auth/jwt')
 const { authenticate } = require('./middleware/authenticate')
 
-const { 
+const {
   router: tutorsRouter, 
   setTutorsCollection 
 } = require("./routes/tutor");
@@ -50,32 +50,14 @@ async function startServer() {
   try {
     const auth = await createAuth();
 
-    const { toNodeHandler } = await import("better-auth/node");
+    const { fromNodeHeaders, toNodeHandler } = await import("better-auth/node");
     app.all('/api/auth/{*any}', toNodeHandler(auth))
 
     app.post("/api/jwt", async (req, res) => {
       try {
-        // First try to get session from cookies
-        const cookieHeader = req.headers.cookie;
-        console.log("Cookie header:", cookieHeader);
-        
-        const cookies = {};
-        if (cookieHeader) {
-          cookieHeader.split(';').forEach(cookie => {
-            const [name, value] = cookie.split('=');
-            if (name && value) {
-              cookies[name.trim()] = value.trim();
-            }
-          });
-        }
-        console.log("Parsed cookies:", Object.keys(cookies));
-        
         let session = await auth.api.getSession({
-          headers: req.headers,
-          cookies: cookies
+          headers: fromNodeHeaders(req.headers),
         });
-        
-        console.log("Session from cookies:", session ? "Found" : "Not found");
         
         // If no session from cookies, try getting session using the auth API directly
         if (!session && req.body && req.body.token) {
@@ -83,9 +65,9 @@ async function startServer() {
           // For better-auth, session tokens can be validated
           try {
             const sessionData = await auth.api.getSession({ 
-              headers: {
-                'authorization': `Bearer ${req.body.token}`
-              }
+              headers: fromNodeHeaders({
+                authorization: `Bearer ${req.body.token}`,
+              }),
             });
             session = sessionData;
             console.log("Session from token:", session ? "Found" : "Not found");
@@ -97,7 +79,6 @@ async function startServer() {
         if (!session) {
           return res.status(401).json({ 
             message: "Not authenticated",
-            debug: { cookiesReceived: Object.keys(cookies) }
           });
         }
         
