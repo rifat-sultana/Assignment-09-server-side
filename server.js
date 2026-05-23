@@ -55,11 +55,10 @@ async function startServer() {
 
     app.post("/api/jwt", async (req, res) => {
       try {
-        // Debug: log cookie header
+        // First try to get session from cookies
         const cookieHeader = req.headers.cookie;
         console.log("Cookie header:", cookieHeader);
         
-        // Parse cookies from header
         const cookies = {};
         if (cookieHeader) {
           cookieHeader.split(';').forEach(cookie => {
@@ -71,13 +70,29 @@ async function startServer() {
         }
         console.log("Parsed cookies:", Object.keys(cookies));
         
-        // Try to get session
-        const session = await auth.api.getSession({
+        let session = await auth.api.getSession({
           headers: req.headers,
           cookies: cookies
         });
         
-        console.log("Session result:", session ? "Found" : "Not found");
+        console.log("Session from cookies:", session ? "Found" : "Not found");
+        
+        // If no session from cookies, try getting session using the auth API directly
+        if (!session && req.body && req.body.token) {
+          console.log("Attempting to validate session token from body...");
+          // For better-auth, session tokens can be validated
+          try {
+            const sessionData = await auth.api.getSession({ 
+              headers: {
+                'authorization': `Bearer ${req.body.token}`
+              }
+            });
+            session = sessionData;
+            console.log("Session from token:", session ? "Found" : "Not found");
+          } catch(e) {
+            console.log("Token validation failed:", e.message);
+          }
+        }
         
         if (!session) {
           return res.status(401).json({ 
@@ -85,6 +100,7 @@ async function startServer() {
             debug: { cookiesReceived: Object.keys(cookies) }
           });
         }
+        
         const token = signToken(session.user);
         res.json({ token, user: session.user });
       } catch (error) {
