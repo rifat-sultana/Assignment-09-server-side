@@ -4,12 +4,13 @@ const { db } = require("../config/db")
 dotenv.config();
 
 const serverURL = process.env.BETTER_AUTH_URL || "http://localhost:5000";
+const clientURL = process.env.CLIENT_URL || "http://localhost:3000";
 const isHttpsServer = serverURL.startsWith("https://");
 const trustedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "https://assignment-09-client-side.vercel.app",
-  process.env.CLIENT_URL,
+  clientURL,
 ].filter(Boolean);
 
 async function createAuth() {
@@ -44,7 +45,7 @@ async function createAuth() {
         prompt: "select_account",
         clientId: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        // redirectURI: "http://localhost:5000/api/auth/callback/google",
+        redirectURI: `${serverURL}/api/auth/callback/google`,
       },
     },
   });
