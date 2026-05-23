@@ -9,8 +9,6 @@ const { connectDB } = require("./config/db");
 const { createAuth } = require('./auth/auth')
 const { signToken } = require('./auth/jwt')
 const { authenticate } = require('./middleware/authenticate')
-const { toNodeHandler } = require("better-auth/node");
-
 
 const { 
   router: tutorsRouter, 
@@ -52,34 +50,49 @@ async function startServer() {
   try {
     const auth = await createAuth();
 
+    const { toNodeHandler } = await import("better-auth/node");
     app.all('/api/auth/{*any}', toNodeHandler(auth))
 
     app.post("/api/jwt", async (req, res) => {
       try {
-        // Parse cookies from headers manually
+        // Debug: log cookie header
         const cookieHeader = req.headers.cookie;
+        console.log("Cookie header:", cookieHeader);
+        
+        // Parse cookies from header
         const cookies = {};
         if (cookieHeader) {
           cookieHeader.split(';').forEach(cookie => {
             const [name, value] = cookie.split('=');
-            if (name) {
-              cookies[name.trim()] = decodeURIComponent(value);
+            if (name && value) {
+              cookies[name.trim()] = value.trim();
             }
           });
         }
+        console.log("Parsed cookies:", Object.keys(cookies));
         
+        // Try to get session
         const session = await auth.api.getSession({
           headers: req.headers,
-          cookies: cookies,
+          cookies: cookies
         });
+        
+        console.log("Session result:", session ? "Found" : "Not found");
+        
         if (!session) {
-          return res.status(401).json({ message: "Not authenticated" });
+          return res.status(401).json({ 
+            message: "Not authenticated",
+            debug: { cookiesReceived: Object.keys(cookies) }
+          });
         }
         const token = signToken(session.user);
         res.json({ token, user: session.user });
       } catch (error) {
-        console.error("JWT Error:", error);
-        res.status(500).json({ message: "Failed to generate token", error: error.message });
+        console.error("JWT endpoint error:", error);
+        res.status(500).json({ 
+          message: "Failed to generate token",
+          error: error.message 
+        });
       }
     });
 
