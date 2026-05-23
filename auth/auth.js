@@ -9,8 +9,8 @@ async function createAuth() {
 
   return betterAuth({
     database: mongodbAdapter(db),
-    baseURL: process.env.BETTER_AUTH_URL,
     secret: process.env.BETTER_AUTH_SECRET,
+    baseURL: process.env.BETTER_AUTH_URL,
     trustedOrigins: ["http://localhost:3000", "https://assignment-09-client-side.vercel.app", "https://assignment-09-server-side.onrender.com"],
     emailAndPassword: {
       enabled: true,
@@ -19,6 +19,12 @@ async function createAuth() {
     session: {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
+      cookieAttributes: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+      },
     },
 
     socialProviders: {
@@ -26,6 +32,7 @@ async function createAuth() {
         prompt: "select_account",
         clientId: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        // redirectURI: "http://localhost:5000/api/auth/callback/google",
       },
     },
   });
