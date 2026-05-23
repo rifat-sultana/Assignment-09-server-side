@@ -9,6 +9,8 @@ const { connectDB } = require("./config/db");
 const { createAuth } = require('./auth/auth')
 const { signToken } = require('./auth/jwt')
 const { authenticate } = require('./middleware/authenticate')
+const { toNodeHandler } = await import("better-auth/node");
+
 
 const { 
   router: tutorsRouter, 
@@ -50,8 +52,7 @@ async function startServer() {
   try {
     const auth = await createAuth();
 
-    const { toNodeHandler } = await import("better-auth/node");
-    app.all('/api/auth/*', toNodeHandler(auth))
+    app.all('/api/auth/{*any}', toNodeHandler(auth))
 
     app.post("/api/jwt", async (req, res) => {
       try {
