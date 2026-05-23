@@ -31,6 +31,7 @@ app.use(
     origin: [
       "http://localhost:3000",
       "https://assignment-09-client-side.vercel.app",
+      "https://assignment-09-server-side.onrender.com"
     ],
     credentials: true,
   })
