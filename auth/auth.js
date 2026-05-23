@@ -11,7 +11,7 @@ async function createAuth() {
     database: mongodbAdapter(db),
     baseURL: process.env.BETTER_AUTH_URL,
     secret: process.env.BETTER_AUTH_SECRET,
-    trustedOrigins: ["http://localhost:3000", "https://assignment-09-client-side.vercel.app"],
+    trustedOrigins: ["http://localhost:3000", "https://assignment-09-client-side.vercel.app", "https://assignment-09-server-side.onrender.com"],
     emailAndPassword: {
       enabled: true,
     },
