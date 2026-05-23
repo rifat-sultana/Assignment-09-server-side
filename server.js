@@ -9,7 +9,7 @@ const { connectDB } = require("./config/db");
 const { createAuth } = require('./auth/auth')
 const { signToken } = require('./auth/jwt')
 const { authenticate } = require('./middleware/authenticate')
-const { toNodeHandler } = await import("better-auth/node");
+const { toNodeHandler } = require("better-auth/node");
 
 
 const { 
