@@ -31,7 +31,6 @@ app.use(
     origin: [
       "http://localhost:3000",
       "https://assignment-09-client-side.vercel.app",
-      "https://assignment-09-server-side.onrender.com"
     ],
     credentials: true,
   })
@@ -52,18 +51,34 @@ async function startServer() {
     const auth = await createAuth();
 
     const { toNodeHandler } = await import("better-auth/node");
-    app.all('/api/auth/{*any}', toNodeHandler(auth))
+    app.all('/api/auth/*', toNodeHandler(auth))
 
     app.post("/api/jwt", async (req, res) => {
       try {
-        const session = await auth.api.getSession({ headers: req.headers });
+        // Parse cookies from headers manually
+        const cookieHeader = req.headers.cookie;
+        const cookies = {};
+        if (cookieHeader) {
+          cookieHeader.split(';').forEach(cookie => {
+            const [name, value] = cookie.split('=');
+            if (name) {
+              cookies[name.trim()] = decodeURIComponent(value);
+            }
+          });
+        }
+        
+        const session = await auth.api.getSession({
+          headers: req.headers,
+          cookies: cookies,
+        });
         if (!session) {
           return res.status(401).json({ message: "Not authenticated" });
         }
         const token = signToken(session.user);
         res.json({ token, user: session.user });
       } catch (error) {
-        res.status(500).json({ message: "Failed to generate token" });
+        console.error("JWT Error:", error);
+        res.status(500).json({ message: "Failed to generate token", error: error.message });
       }
     });
 
