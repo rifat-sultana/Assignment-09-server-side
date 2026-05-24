@@ -10,7 +10,7 @@ const { createAuth } = require('./auth/auth')
 const { signToken } = require('./auth/jwt')
 const { authenticate } = require('./middleware/authenticate')
 
-const { 
+const {
   router: tutorsRouter, 
   setTutorsCollection 
 } = require("./routes/tutor");
@@ -31,7 +31,6 @@ app.use(
     origin: [
       "http://localhost:3000",
       "https://assignment-09-client-side.vercel.app",
-      "https://assignment-09-server-side.onrender.com"
     ],
     credentials: true,
   })
@@ -51,19 +50,46 @@ async function startServer() {
   try {
     const auth = await createAuth();
 
-    const { toNodeHandler } = await import("better-auth/node");
-    app.all("/api/auth/{*any}", toNodeHandler(auth));
+    const { fromNodeHeaders, toNodeHandler } = await import("better-auth/node");
+    app.all('/api/auth/{*any}', toNodeHandler(auth))
 
     app.post("/api/jwt", async (req, res) => {
       try {
-        const session = await auth.api.getSession({ headers: req.headers });
-        if (!session) {
-          return res.status(401).json({ message: "Not authenticated" });
+        let session = await auth.api.getSession({
+          headers: fromNodeHeaders(req.headers),
+        });
+        
+        // If no session from cookies, try getting session using the auth API directly
+        if (!session && req.body && req.body.token) {
+          console.log("Attempting to validate session token from body...");
+          // For better-auth, session tokens can be validated
+          try {
+            const sessionData = await auth.api.getSession({ 
+              headers: fromNodeHeaders({
+                authorization: `Bearer ${req.body.token}`,
+              }),
+            });
+            session = sessionData;
+            console.log("Session from token:", session ? "Found" : "Not found");
+          } catch(e) {
+            console.log("Token validation failed:", e.message);
+          }
         }
+        
+        if (!session) {
+          return res.status(401).json({ 
+            message: "Not authenticated",
+          });
+        }
+        
         const token = signToken(session.user);
         res.json({ token, user: session.user });
       } catch (error) {
-        res.status(500).json({ message: "Failed to generate token" });
+        console.error("JWT endpoint error:", error);
+        res.status(500).json({ 
+          message: "Failed to generate token",
+          error: error.message 
+        });
       }
     });
 
