@@ -52,7 +52,7 @@ async function startServer() {
     const auth = await createAuth();
 
     const { toNodeHandler } = await import("better-auth/node");
-    app.all('/api/auth/{*any}', toNodeHandler(auth))
+    app.all("/api/auth/{*any}", toNodeHandler(auth));
 
     app.post("/api/jwt", async (req, res) => {
       try {
